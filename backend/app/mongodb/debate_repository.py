@@ -125,32 +125,32 @@ class DebateRepository:
 
     def get_reports_by_user(self, user_id: int):
         """
-        Retrieve all reports submitted by a user.
+        Retrieve all reports submitted by a user, newest first.
         """
-        reports = self.collection.find({"user_id": user_id})
+        reports = self.collection.find({"user_id": user_id}).sort("created_at", -1)
         return list(reports)
 
     def get_reports_by_user_ids(self, user_ids: list[int]):
         """
-        Retrieve all reports submitted by a list of user IDs.
+        Retrieve all reports submitted by a list of user IDs, newest first.
         """
         if not user_ids:
             return []
-        reports = self.collection.find({"user_id": {"$in": user_ids}})
+        reports = self.collection.find({"user_id": {"$in": user_ids}}).sort("created_at", -1)
         return list(reports)
 
     def get_reports_by_session(self, session_id: int):
         """
-        Retrieve all reports for a debate session.
+        Retrieve all reports for a debate session, newest first.
         """
-        reports = self.collection.find({"session_id": session_id})
+        reports = self.collection.find({"session_id": session_id}).sort("created_at", -1)
         return list(reports)
 
     def get_all_reports(self):
         """
-        Retrieve all debate analysis reports.
+        Retrieve all debate analysis reports, newest first.
         """
-        reports = self.collection.find()
+        reports = self.collection.find().sort("created_at", -1)
         return list(reports)
 
 

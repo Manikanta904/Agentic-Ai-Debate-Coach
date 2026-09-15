@@ -277,7 +277,7 @@ class DebateTopicService:
                     from langchain_groq import ChatGroq
                     fallback_llm = ChatGroq(
                         groq_api_key=settings.GROQ_API_KEY,
-                        model_name="llama-3.1-8b-instant",
+                        model_name=settings.GROQ_MODEL,
                         temperature=0.7,
                     )
                     llm_instances.append(fallback_llm)

@@ -28,37 +28,16 @@ class Settings:
 
     # JWT
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-me-in-production")
-
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
-
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-        os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
-    )
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
     # AI / LLM Configuration
-
-    OLLAMA_MODEL: str = os.getenv(
-        "OLLAMA_MODEL",
-        "llama3.1:8b"
-    )
-
-    OLLAMA_BASE_URL: str = os.getenv(
-        "OLLAMA_BASE_URL",
-        "http://localhost:11434"
-    )
-
-    LLM_TEMPERATURE: float = float(
-        os.getenv("LLM_TEMPERATURE", 0.3)
-    )
-
-    LLM_MAX_TOKENS: int = int(
-        os.getenv("LLM_MAX_TOKENS", 1024)
-    )
-
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    LLM_TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", 0.3))
+    LLM_MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", 4096))
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "groq").lower()
 
     MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
@@ -67,5 +46,3 @@ class Settings:
 
 # Create a global settings object
 settings = Settings()
-
-

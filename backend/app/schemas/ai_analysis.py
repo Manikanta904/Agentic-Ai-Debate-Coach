@@ -14,6 +14,7 @@ Note:
     any AI processing logic.
 """
 
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
 from app.ai.schemas.argument_analysis_schema import (
@@ -21,6 +22,15 @@ from app.ai.schemas.argument_analysis_schema import (
 )
 from app.ai.schemas.fallacy_detection_schema import (
     FallacyDetectionResponse,
+)
+from app.ai.schemas.milestone3_schema import (
+    CounterargumentResponse,
+    AIDebateOpponentResponse,
+    JudgeCategoryScores,
+    PerformanceScore,
+    CoachingResponse,
+    RecommendationResponse,
+    LearningPathResponse,
 )
 
 
@@ -48,12 +58,38 @@ class ArgumentAnalysisRequest(BaseModel):
 
 class AIAnalysisData(BaseModel):
     """
-    Combined AI analysis results.
+    Combined AI analysis results across the complete 8-agent pipeline.
     """
 
-    argument_analysis: ArgumentAnalysisResponse
+    session: Optional[Dict[str, Any]] = None
 
-    logical_fallacy_analysis: FallacyDetectionResponse
+    argument: Optional[str] = None
+
+    transcript: Optional[Dict[str, Any]] = None
+
+    argument_analysis: Optional[ArgumentAnalysisResponse] = None
+
+    logical_fallacy_analysis: Optional[FallacyDetectionResponse] = None
+
+    counterargument_analysis: Optional[CounterargumentResponse] = None
+
+    debate_simulation: Optional[AIDebateOpponentResponse] = None
+
+    judge_evaluation: Optional[JudgeCategoryScores] = None
+
+    performance_score: Optional[PerformanceScore] = None
+
+    coaching: Optional[CoachingResponse] = None
+
+    recommendations: Optional[RecommendationResponse] = None
+
+    learning_path: Optional[LearningPathResponse] = None
+
+    execution_status: str = Field(default="completed")
+
+    errors: List[str] = Field(default_factory=list)
+
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class AIAnalysisAPIResponse(BaseModel):

@@ -23,7 +23,33 @@ class FAISSEvidenceStore:
         self.documents_path.write_text(json.dumps(self.documents), encoding="utf-8")
     def search(self, query: str, limit: int) -> list[EvidenceSource]:
         if self.index.ntotal == 0: return []
-        _, ids = self.index.search(np.array([embedding_provider.embed(query)]), min(limit, self.index.ntotal))
-        return [EvidenceSource(**self.documents[idx]) for idx in ids[0] if idx >= 0 and idx < len(self.documents)]
+        distances, ids = self.index.search(np.array([embedding_provider.embed(query)]), min(limit, self.index.ntotal))
+        results: list[EvidenceSource] = []
+        
+        stopwords = {
+            "a", "an", "the", "in", "on", "of", "for", "and", "or", "to", "is", "are", "was", "were",
+            "be", "been", "by", "with", "that", "this", "it", "as", "from", "at", "about", "against",
+            "between", "into", "through", "during", "before", "after", "above", "below", "up", "down",
+            "out", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when",
+            "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some",
+            "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "can", "will",
+            "just", "should", "now", "would", "could", "may", "might", "must", "also", "using"
+        }
+        query_terms = {w.strip(".,!?;:\"'()[]{}").lower() for w in query.split() if len(w) > 2} - stopwords
+
+        for dist, idx in zip(distances[0], ids[0]):
+            if idx < 0 or idx >= len(self.documents):
+                continue
+            doc_data = self.documents[idx]
+            doc_text = doc_data.get("content", "")
+            doc_terms = {w.strip(".,!?;:\"'()[]{}").lower() for w in doc_text.split() if len(w) > 2} - stopwords
+            overlap = len(query_terms & doc_terms)
+            score = float(dist)
+
+            # Strict relevance check: require minimum embedding similarity and domain term overlap
+            if score >= 0.35 and overlap >= 2:
+                results.append(EvidenceSource(**doc_data))
+
+        return results
 
 faiss_evidence_store = FAISSEvidenceStore()

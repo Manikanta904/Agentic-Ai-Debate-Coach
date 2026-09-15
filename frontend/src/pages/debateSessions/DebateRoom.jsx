@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 import MainLayout from "../../components/layout/MainLayout";
@@ -44,6 +44,8 @@ const DebateRoomContent = () => {
     const [analysisStageText, setAnalysisStageText] = useState("");
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
+
+    const isSubmittingRef = useRef(false);
 
     useEffect(() => {
         let active = true;
@@ -122,6 +124,8 @@ const DebateRoomContent = () => {
     };
 
     const handleSpeechSubmit = async () => {
+        if (isSubmittingRef.current || analyzing) return;
+
         const mediaFile = uploadedAudio || uploadedVideo || recordedAudioFile;
         const currentSpeechText = (speech || "").trim();
 
@@ -132,7 +136,11 @@ const DebateRoomContent = () => {
         }
 
         try {
+            isSubmittingRef.current = true;
             setAnalyzing(true);
+            setError("");
+            setNotice("");
+
             if (mediaFile) {
                 setAnalysisStageText("Uploading binary file to MongoDB GridFS & transcribing speech with Whisper...");
                 showToast("Storing binary in GridFS & transcribing speech...", "info");
@@ -144,7 +152,22 @@ const DebateRoomContent = () => {
             const response = await analyzeDebate(sessionModel.id, currentSpeechText, mediaFile, {
                 debate_format: sessionModel.debate_format,
                 user_position: sessionModel.position,
+                difficulty: location.state?.difficulty || "Intermediate",
+                current_round: currentRound + 1,
             });
+
+            // Check if analysis failed on backend
+            if (response?.success === false || response?.data?.execution_status === "failed") {
+                const rawErr = response?.data?.errors?.[0] || response?.message || "";
+                const isRateLimit = /rate limit|429|tpm|tpd|tokens per/i.test(rawErr);
+                const userErrMsg = isRateLimit
+                    ? "AI analysis is temporarily rate-limited by Groq API. Please try again shortly."
+                    : (rawErr || "AI analysis could not be completed. Please try again.");
+                
+                setError(userErrMsg);
+                showToast(userErrMsg, "error");
+                return; // Do NOT navigate on failure
+            }
 
             const assignmentId = location.state?.assignmentId;
             if (assignmentId) {
@@ -162,9 +185,27 @@ const DebateRoomContent = () => {
             pushTranscript("AI Coach", response?.data?.ai_debate_opponent?.opponent_response || "Multi-agent debate analysis completed.");
             showToast("Multi-agent AI Analysis completed successfully!", "success");
 
+            const analysisPayload = {
+                ...response,
+                argument: currentSpeechText,
+                transcript: { transcript: generatedTranscriptText || currentSpeechText },
+                data: response?.data ? {
+                    ...response.data,
+                    argument: currentSpeechText,
+                    transcript: { transcript: generatedTranscriptText || currentSpeechText }
+                } : response?.data
+            };
+
+            try {
+                sessionStorage.setItem("latest_debate_analysis", JSON.stringify(analysisPayload));
+            } catch (cacheErr) {
+                console.warn("Could not cache latest debate analysis in sessionStorage:", cacheErr);
+            }
+
             navigate("/ai-analysis-report", {
                 state: {
-                    analysis: response,
+                    analysis: analysisPayload,
+                    originalSubmittedArgument: currentSpeechText,
                     selectedTopic: topic,
                     selectedSession: sessionModel,
                     assignmentId,
@@ -172,11 +213,17 @@ const DebateRoomContent = () => {
             });
         } catch (submissionError) {
             console.error(submissionError);
-            setError("Analysis failed. Please check file format and backend server.");
-            showToast("Analysis failed. Please try again.", "error");
+            const errStr = String(submissionError?.message || submissionError || "");
+            const isRateLimit = /rate limit|429|tpm|tpd|tokens per/i.test(errStr);
+            const userErrMsg = isRateLimit
+                ? "AI analysis is temporarily rate-limited by Groq API. Please try again shortly."
+                : "Analysis failed. Please check backend server and retry.";
+            setError(userErrMsg);
+            showToast(userErrMsg, "error");
         } finally {
             setAnalyzing(false);
             setAnalysisStageText("");
+            isSubmittingRef.current = false;
         }
     };
 
@@ -258,7 +305,62 @@ const DebateRoomContent = () => {
 
                 <DebateHeader session={sessionModel} onLeave={handleLeaveRoom} />
 
-                {error && <div className="empty-state">{error}</div>}
+                {error && (
+                    <div style={{
+                        background: "linear-gradient(135deg, #451A03, #78350F)",
+                        color: "#FEF3C7",
+                        padding: "20px 24px",
+                        borderRadius: "12px",
+                        marginBottom: "20px",
+                        borderLeft: "5px solid #F59E0B",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "16px"
+                    }}>
+                        <div>
+                            <h4 style={{ margin: "0 0 6px", fontSize: "16px", color: "#FDE68A" }}>⚠️ AI Analysis Could Not Be Completed</h4>
+                            <p style={{ margin: 0, fontSize: "14px", color: "#FEF3C7" }}>{error}</p>
+                        </div>
+                        <div style={{ display: "flex", gap: "12px" }}>
+                            <button
+                                type="button"
+                                onClick={handleSpeechSubmit}
+                                disabled={analyzing}
+                                style={{
+                                    background: "#F59E0B",
+                                    color: "#78350F",
+                                    fontWeight: 700,
+                                    border: "none",
+                                    padding: "10px 18px",
+                                    borderRadius: "8px",
+                                    cursor: "pointer",
+                                    fontSize: "14px"
+                                }}
+                            >
+                                🔄 Retry Analysis
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate("/topics")}
+                                style={{
+                                    background: "rgba(255,255,255,0.1)",
+                                    color: "#FDE68A",
+                                    fontWeight: 600,
+                                    border: "1px solid rgba(253,230,138,0.3)",
+                                    padding: "10px 18px",
+                                    borderRadius: "8px",
+                                    cursor: "pointer",
+                                    fontSize: "14px"
+                                }}
+                            >
+                                Back to Topics
+                            </button>
+                        </div>
+                    </div>
+                )}
                 {notice && <div className="success-message">{notice}</div>}
 
                 {analyzing && (

@@ -35,9 +35,12 @@ export const AuthProvider = ({ children }) => {
                 }
             } catch (err) {
                 if (active) {
-                    logoutUser();
-                    setUser(null);
-                    setToken(null);
+                    const cachedUser = getUser();
+                    if (!cachedUser) {
+                        logoutUser();
+                        setUser(null);
+                        setToken(null);
+                    }
                 }
             }
         };

@@ -165,13 +165,14 @@ def execute_simulation_turn(
 
     performance = workflow_res.get("performance", {})
     categories = performance.get("categories", {})
-    overall_score = float(performance.get("overall_score", 82.0))
+    overall_score = float(performance.get("overall_score", 0.0))
 
-    arg_quality = float(categories.get("argument_quality", 80.0))
-    rebuttal_score = float(categories.get("rebuttal_effectiveness", 80.0))
-    logic_score = float(categories.get("logical_consistency", 80.0))
-    comm_score = float(categories.get("communication_skills", 80.0))
-    ev_score = float(categories.get("evidence_usage", 80.0))
+    arg_quality = float(categories.get("argument_quality", 0.0))
+    rebuttal_score = float(categories.get("rebuttal_effectiveness", 0.0))
+    logic_score = float(categories.get("logical_consistency", 0.0))
+    comm_score = float(categories.get("communication_skills", 0.0))
+    ev_score = float(categories.get("evidence_usage", 0.0))
+
 
     # Persist turn evaluation in PostgreSQL
     evaluation = DebateEvaluation(

@@ -51,7 +51,9 @@ def _convert_presentation_analysis_to_report(pa: PresentationAnalysis) -> Debate
             "confidence_score": float(pa.confidence_score or 0.0),
             "clarity_score": float(pa.clarity_score or 0.0),
         },
-        logical_fallacy_analysis={}
+        logical_fallacy_analysis={},
+        created_at=pa.created_at.isoformat() if pa.created_at else None,
+        updated_at=pa.updated_at.isoformat() if pa.updated_at else None,
     )
 
 

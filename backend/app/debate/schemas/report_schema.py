@@ -1,5 +1,4 @@
 from typing import Any, List, Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -29,7 +28,7 @@ class DebateReport(BaseModel):
     )
 
     input_type: str = Field(
-        ...,
+        "text",
         description="Type of debate input."
     )
 
@@ -38,19 +37,69 @@ class DebateReport(BaseModel):
         description="Uploaded media filename."
     )
 
-    transcript: dict = Field(
-        ...,
+    transcript: Optional[dict] = Field(
+        default_factory=dict,
         description="Speech transcription."
     )
 
-    argument_analysis: dict = Field(
-        ...,
+    argument_analysis: Optional[dict] = Field(
+        default_factory=dict,
         description="Argument analysis results."
     )
 
-    logical_fallacy_analysis: dict = Field(
-        ...,
+    logical_fallacy_analysis: Optional[dict] = Field(
+        default_factory=dict,
         description="Logical fallacy analysis results."
+    )
+
+    counterargument: Optional[dict] = Field(
+        default_factory=dict,
+        description="Counterargument analysis results."
+    )
+
+    ai_debate_opponent: Optional[dict] = Field(
+        default_factory=dict,
+        description="AI debate opponent results."
+    )
+
+    judge_evaluation: Optional[dict] = Field(
+        default_factory=dict,
+        description="Judge evaluation results."
+    )
+
+    performance: Optional[dict] = Field(
+        default_factory=dict,
+        description="Performance score results."
+    )
+
+    coaching: Optional[dict] = Field(
+        default_factory=dict,
+        description="Coaching recommendations."
+    )
+
+    recommendations: Optional[dict] = Field(
+        default_factory=dict,
+        description="Actionable recommendations."
+    )
+
+    learning_path: Optional[dict] = Field(
+        default_factory=dict,
+        description="Personalized learning path."
+    )
+
+    observability: Optional[dict] = Field(
+        default_factory=dict,
+        description="Observability and timing metadata."
+    )
+
+    created_at: Optional[str] = Field(
+        None,
+        description="ISO timestamp of creation."
+    )
+
+    updated_at: Optional[str] = Field(
+        None,
+        description="ISO timestamp of last update."
     )
 
 

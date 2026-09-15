@@ -144,19 +144,76 @@ const LearnerDashboard = () => {
             .slice(0, 4);
     }, [sessions]);
 
+    // Determine the latest completed report (persisted DB reports take priority; sessionStorage fallback ONLY if not in DB yet)
+    const latestReport = useMemo(() => {
+        let latestPersisted = null;
+        if (reports && reports.length > 0) {
+            const sorted = [...reports].sort((a, b) => {
+                const timeA = new Date(a.created_at || a.updated_at || a.timestamp || 0).getTime();
+                const timeB = new Date(b.created_at || b.updated_at || b.timestamp || 0).getTime();
+                const validA = Number.isFinite(timeA) && timeA > 0;
+                const validB = Number.isFinite(timeB) && timeB > 0;
+                if (validA && validB) return timeB - timeA;
+                if (validA) return -1;
+                if (validB) return 1;
+                return (b.session_id || 0) - (a.session_id || 0);
+            });
+            latestPersisted = sorted[0];
+        }
+
+        try {
+            const cachedRaw = sessionStorage.getItem("latest_debate_analysis");
+            if (cachedRaw) {
+                const cachedObj = JSON.parse(cachedRaw);
+                const cachedData = cachedObj?.data || cachedObj;
+                const cachedSessionId = cachedData?.session_id || cachedData?.session?.session_id;
+
+                if (!latestPersisted) {
+                    return cachedObj;
+                }
+
+                // If latestPersisted matches or is newer than cachedSessionId, persisted TAKES PRECEDENCE!
+                if (latestPersisted && String(latestPersisted.session_id) === String(cachedSessionId)) {
+                    return latestPersisted;
+                }
+
+                // If cached is for a new session ID not yet returned in DB reports API
+                if (cachedSessionId && !reports.some(r => String(r.session_id) === String(cachedSessionId))) {
+                    return cachedObj;
+                }
+            }
+        } catch (e) {
+            console.warn("Error reading sessionStorage analysis fallback:", e);
+        }
+
+        return latestPersisted;
+    }, [reports]);
+
     const recentReports = useMemo(() => {
-        return [...reports]
+        const combined = [...reports];
+        if (latestReport && !reports.some(r => (r.id || r.report_id || r.session_id) === (latestReport.id || latestReport.report_id || latestReport.session_id))) {
+            const sessionVal = latestReport.session_id || latestReport.session?.session_id || "Live";
+            combined.unshift({
+                id: `temp_${sessionVal}`,
+                session_id: sessionVal,
+                input_type: latestReport.input_type || "AI Analysis",
+                created_at: new Date().toISOString(),
+                argument_analysis: latestReport.argument_analysis || latestReport.data?.argument_analysis,
+            });
+        }
+
+        return combined
             .sort((firstReport, secondReport) => new Date(secondReport.created_at || 0) - new Date(firstReport.created_at || 0))
             .slice(0, 4)
             .map((report) => ({
-                id: report.id || report.session_id,
+                id: report.id || report.report_id || report.session_id,
                 topic: `Session #${report.session_id}`,
                 result: report.input_type || "Report",
                 score: `${extractReportScore(report)}%`,
                 date: formatDate(report.created_at || report.updated_at),
                 rawReport: report,
             }));
-    }, [reports]);
+    }, [reports, latestReport]);
 
     const activityItems = useMemo(() => {
         return notifications.slice(0, 4).map((notification) => `${notification.title}: ${notification.message}`);
@@ -177,10 +234,12 @@ const LearnerDashboard = () => {
         };
     }, [skill]);
 
+    const latestReportScore = extractReportScore(latestReport);
+
     const stats = [
         {
             title: "Total Debates",
-            value: skill?.total_debates || sessions.length,
+            value: skill?.total_debates || reports.length || sessions.length,
             icon: <FaCalendarAlt />,
             color: "#2563EB",
         },
@@ -198,7 +257,7 @@ const LearnerDashboard = () => {
         },
         {
             title: "Overall Skill Score",
-            value: `${overallProgress}%`,
+            value: `${latestReportScore > 0 ? latestReportScore : overallProgress}%`,
             icon: <FaChartLine />,
             color: "#8B5CF6",
         },
@@ -228,16 +287,9 @@ const LearnerDashboard = () => {
 
                 {/* Performance Dashboard Charts */}
                 <InteractiveAnalysisCharts
-                    argumentAnalysis={{
-                        evaluation_criteria: {
-                            clarity: Math.round((skill?.communication_score || 75) / 10),
-                            relevance: Math.round((skill?.confidence_score || 76) / 10),
-                            evidence_strength: Math.round((skill?.argument_score || 74) / 10),
-                            logical_consistency: Math.round((skill?.critical_thinking_score || 70) / 10),
-                            persuasiveness: Math.round((skill?.presentation_score || 72) / 10),
-                        },
-                        argument_scoring: { overall_score: overallProgress },
-                    }}
+                    latestReport={latestReport}
+                    reportsList={reports}
+                    userSkill={skill}
                 />
 
                 {/* Assigned Practice Card Section */}

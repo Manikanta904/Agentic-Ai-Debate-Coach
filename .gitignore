@@ -25,29 +25,29 @@ frontend/dist/
 # =========================
 .env
 .env.*
-backend/.env
-backend/.env.*
 !.env.example
-!backend/.env.example
 
 # =========================
-# Logs & Local Backups
+# Logs
 # =========================
 *.log
-*.dump
-database/*.dump
 
 # =========================
-# Editor / OS / Scratch files
+# Editor / OS files
 # =========================
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-scratch/
-artifacts/
 
 # =========================
 # Local AI / Vector data
 # =========================
 **/data/faiss/
+
+# Local database backup
+database/docker_postgres_backup_before_migration.dump
+
+# Temporary forensic artifacts
+scratch/
+artifacts/
